@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PassAudit Pro v2 — Password Security Auditor</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --bg:#07090f; --s1:#0c0f1a; --s2:#111827; --s3:#1a2235;
+  --border:#1e2d47; --border2:#2a3f5f;
+  --purple:#a855f7; --purple2:#7c3aed; --purple-glow:rgba(168,85,247,.15);
+  --green:#22c55e; --red:#ef4444; --orange:#f97316;
+  --yellow:#eab308; --cyan:#06b6d4; --blue:#3b82f6;
+  --text:#e2e8f0; --muted:#64748b; --dim:#334155;
+  --font:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
+
+/* Animated background */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(168,85,247,.08),transparent),
+             radial-gradient(ellipse 50% 80% at 80% 50%,rgba(59,130,246,.05),transparent);
+  pointer-events:none;z-index:0;
+}
+body::after{
+  content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(168,85,247,.025) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(168,85,247,.025) 1px,transparent 1px);
+  background-size:48px 48px;pointer-events:none;z-index:0;
+}
+
+.wrap{max-width:1060px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
+
+/* ── HEADER ─────────────────────────────────── */
+.header{padding:24px 0 20px;border-bottom:1px solid var(--border);margin-bottom:28px}
+.header-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.brand{display:flex;align-items:center;gap:14px}
+.brand-icon{
+  width:46px;height:46px;
+  background:linear-gradient(135deg,var(--purple2),var(--purple));
+  border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:22px;box-shadow:0 0 20px rgba(168,85,247,.3);
+}
+.brand-name{font-size:22px;font-weight:700;color:#fff;letter-spacing:.5px}
+.brand-sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.header-badges{display:flex;gap:8px;align-items:center}
+.badge{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:5px;letter-spacing:.5px;border:1px solid}
+.badge-purple{background:rgba(168,85,247,.1);color:var(--purple);border-color:rgba(168,85,247,.25)}
+.badge-green{background:rgba(34,197,94,.1);color:var(--green);border-color:rgba(34,197,94,.2)}
+
+/* ── TABS ───────────────────────────────────── */
+.tabs{display:flex;gap:2px;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:24px;overflow-x:auto}
+.tab{
+  flex:1;min-width:120px;padding:10px 8px;text-align:center;cursor:pointer;
+  border-radius:9px;font-size:13px;font-weight:500;color:var(--muted);
+  transition:all .2s;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.tab .tab-icon{font-size:15px}
+.tab:hover:not(.active){color:var(--text);background:rgba(255,255,255,.03)}
+.tab.active{background:linear-gradient(135deg,rgba(168,85,247,.2),rgba(124,58,237,.1));color:#fff;box-shadow:inset 0 0 0 1px rgba(168,85,247,.3)}
+
+/* ── PANELS ─────────────────────────────────── */
+.panel{display:none}.panel.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ── CARDS ───────────────────────────────────── */
+.card{background:var(--s1);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:16px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(168,85,247,.3),transparent)}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.card-title{font-size:13px;font-weight:600;color:var(--purple);letter-spacing:.8px;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.card-title .ct-icon{font-size:16px}
+
+/* ── INPUTS ──────────────────────────────────── */
+.inp{
+  width:100%;background:var(--s2);border:1px solid var(--border);border-radius:9px;
+  padding:11px 14px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.inp:focus{border-color:var(--purple);box-shadow:0 0 0 3px rgba(168,85,247,.1)}
+.inp::placeholder{color:var(--dim)}
+textarea.inp{resize:vertical;min-height:110px;line-height:1.6}
+select.inp{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+
+.inp-row{display:flex;gap:10px;margin-bottom:14px}
+.inp-group{margin-bottom:14px}
+.inp-label{font-size:12px;font-weight:500;color:var(--muted);display:block;margin-bottom:6px;letter-spacing:.3px}
+.inp-required{color:var(--purple)}
+
+.pwd-wrap{position:relative;flex:1}
+.pwd-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--muted);font-size:12px;font-family:var(--mono);user-select:none;transition:color .2s}
+.pwd-eye:hover{color:var(--purple)}
+
+/* ── BUTTONS ─────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--purple2),var(--purple));
+  color:#fff;border:none;border-radius:9px;padding:11px 22px;
+  font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;
+  transition:opacity .2s,transform .1s;letter-spacing:.2px;white-space:nowrap;
+  box-shadow:0 4px 12px rgba(168,85,247,.25);
+}
+.btn:hover{opacity:.9}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.btn-sm{padding:8px 16px;font-size:12px;border-radius:7px}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text);box-shadow:none}
+.btn-outline:hover{border-color:var(--purple);color:var(--purple);opacity:1}
+.btn-red{background:linear-gradient(135deg,#dc2626,var(--red));box-shadow:0 4px 12px rgba(239,68,68,.2)}
+.btn-green{background:linear-gradient(135deg,#16a34a,var(--green));box-shadow:0 4px 12px rgba(34,197,94,.2)}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
+/* ── GRIDS ───────────────────────────────────── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:640px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+/* ── STRENGTH METER ──────────────────────────── */
+.score-big{font-size:52px;font-weight:700;font-family:var(--mono);line-height:1}
+.strength-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;margin-top:6px}
+.bar-wrap{height:8px;background:var(--s2);border-radius:4px;overflow:hidden;margin:12px 0}
+.bar-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1),background .6s}
+.crack-time{font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:4px}
+
+/* ── CHECK LIST ──────────────────────────────── */
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 8px;border-radius:7px;background:var(--s2)}
+.check-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;font-weight:700}
+.ok{background:rgba(34,197,94,.15);color:var(--green)}
+.no{background:rgba(239,68,68,.15);color:var(--red)}
+
+/* ── ALERT ITEMS ─────────────────────────────── */
+.alert{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:6px;line-height:1.5}
+.alert-err{background:rgba(239,68,68,.08);border-left:3px solid var(--red);color:#fca5a5}
+.alert-warn{background:rgba(234,179,8,.08);border-left:3px solid var(--yellow);color:#fde047}
+.alert-tip{background:rgba(168,85,247,.08);border-left:3px solid var(--purple);color:#d8b4fe}
+.alert-ok{background:rgba(34,197,94,.08);border-left:3px solid var(--green);color:#86efac}
+
+/* ── METRIC BOXES ────────────────────────────── */
+.metric{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center}
+.metric-val{font-size:24px;font-weight:700;font-family:var(--mono);color:#fff}
+.metric-sub{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.5px;text-transform:uppercase}
+
+/* ── HASH RESULT ─────────────────────────────── */
+.hash-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.25);color:var(--cyan);font-family:var(--mono);font-size:11px;padding:4px 12px;border-radius:20px;margin:3px}
+
+.crack-box{text-align:center;padding:24px;border-radius:12px}
+.crack-success{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2)}
+.crack-fail{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15)}
+.crack-pwd{font-size:28px;font-weight:700;font-family:var(--mono);margin:10px 0}
+.crack-meta{font-size:12px;color:var(--muted);font-family:var(--mono)}
+
+/* ── BREACH ──────────────────────────────────── */
+.breach-box{display:flex;align-items:center;gap:16px;padding:18px;border-radius:12px}
+.breach-icon{font-size:36px;line-height:1}
+.breach-breached{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2)}
+.breach-safe{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.15)}
+.breach-title{font-size:17px;font-weight:700;margin-bottom:4px}
+.breach-sub{font-size:13px;color:var(--muted);line-height:1.5}
+
+/* ── HOW IT WORKS BOX ────────────────────────── */
+.how-box{background:var(--s2);border-radius:10px;padding:16px}
+.how-step{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;font-size:13px}
+.how-step:last-child{margin-bottom:0}
+.how-num{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--purple2),var(--purple));color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* ── WORDLIST ────────────────────────────────── */
+.wl-box{background:#06080f;border:1px solid var(--border);border-radius:10px;padding:14px;max-height:260px;overflow-y:auto;font-family:var(--mono);font-size:12px;color:var(--cyan);line-height:1.9}
+.wl-box::-webkit-scrollbar{width:4px}
+.wl-box::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.wl-stats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.wl-stat{background:var(--s2);border-radius:6px;padding:6px 12px;font-size:12px;font-family:var(--mono);color:var(--muted)}
+.wl-stat span{color:#fff;font-weight:600}
+
+/* ── FILE UPLOAD ─────────────────────────────── */
+.upload-zone{
+  border:2px dashed var(--border2);border-radius:10px;padding:28px;text-align:center;
+  cursor:pointer;transition:all .2s;position:relative;
+}
+.upload-zone:hover{border-color:var(--purple);background:rgba(168,85,247,.03)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:32px;margin-bottom:8px}
+.upload-text{font-size:14px;font-weight:500;color:var(--text)}
+.upload-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.upload-name{font-size:12px;color:var(--purple);margin-top:8px;font-family:var(--mono)}
+
+/* ── BULK TABLE ──────────────────────────────── */
+.btable{width:100%;border-collapse:collapse}
+.btable th{background:rgba(168,85,247,.06);color:var(--purple);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border)}
+.btable td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.03);font-size:12px;font-family:var(--mono);vertical-align:middle}
+.btable tr:last-child td{border-bottom:none}
+.btable tr:hover td{background:rgba(255,255,255,.02)}
+.sev-badge{display:inline-block;padding:2px 9px;border-radius:12px;font-size:10px;font-weight:600;letter-spacing:.3px}
+.sev-strong{background:rgba(34,197,94,.15);color:var(--green)}
+.sev-good{background:rgba(34,197,94,.1);color:#4ade80}
+.sev-fair{background:rgba(234,179,8,.1);color:var(--yellow)}
+.sev-weak{background:rgba(249,115,22,.12);color:var(--orange)}
+.sev-vweak{background:rgba(239,68,68,.12);color:var(--red)}
+.mini-bar{height:4px;border-radius:2px;background:var(--s2);margin-top:4px;overflow:hidden}
+.mini-fill{height:100%;border-radius:2px}
+
+/* ── PDF RESULT ──────────────────────────────── */
+.pdf-result{padding:20px;border-radius:12px;text-align:center;margin-top:12px}
+
+/* ── DIVIDER ─────────────────────────────────── */
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:18px 0}
+
+/* ── PROGRESS ────────────────────────────────── */
+.prog-wrap{background:var(--s2);border-radius:6px;height:6px;overflow:hidden;margin-top:8px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--purple2),var(--purple));border-radius:6px;transition:width .3s;animation:shimmer 2s infinite}
+@keyframes shimmer{0%{filter:brightness(1)}50%{filter:brightness(1.3)}100%{filter:brightness(1)}}
+
+footer{text-align:center;padding:20px 0 28px;color:var(--dim);font-size:11px;font-family:var(--mono);border-top:1px solid var(--border);margin-top:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- Header -->
+<div class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-icon">&#128274;</div>
+      <div>
+        <div class="brand-name">PASSAUDIT PRO</div>
+        <div class="brand-sub">// advanced password security auditor v2.0</div>
+      </div>
+    </div>
+    <div class="header-badges">
+      <span class="badge badge-purple">PENTEST TOOL</span>
+      <span class="badge badge-green">v2.0</span>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="go('strength')"><span class="tab-icon">&#128274;</span> Strength</div>
+  <div class="tab" onclick="go('hash')"><span class="tab-icon">&#128273;</span> Hash Cracker</div>
+  <div class="tab" onclick="go('breach')"><span class="tab-icon">&#9888;</span> Breach Check</div>
+  <div class="tab" onclick="go('wordlist')"><span class="tab-icon">&#9998;</span> Wordlist Gen</div>
+  <div class="tab" onclick="go('pdf')"><span class="tab-icon">&#128196;</span> PDF Cracker</div>
+  <div class="tab" onclick="go('bulk')"><span class="tab-icon">&#128203;</span> Bulk Audit</div>
+</div>
+
+<!-- ══ STRENGTH ══════════════════════════════════ -->
+<div class="panel active" id="panel-strength">
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title"><span class="ct-icon">&#128274;</span> Password Strength Analyzer</div>
+    </div>
+    <div class="inp-row">
+      <div class="pwd-wrap">
+        <input class="inp" type="password" id="s-pwd" placeholder="Enter password to analyze..." oninput="liveStr(this.value)">
+        <span class="pwd-eye" onclick="toggleEye('s-pwd',this)">SHOW</span>
+      </div>
+      <button class="btn" onclick="doAnalyze()">&#9654; Analyze</button>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer;margin-top:4px">
+      <input type="checkbox" id="s-breach" style="accent-color:var(--purple);width:15px;height:15px">
+      Also check HaveIBeenPwned breach database (requires internet)
+    </label>
+  </div>
+
+  <div id="str-result" style="display:none">
+    <div class="g2">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:16px"><span class="ct-icon">&#128200;</span> Score</div>
+        <div class="score-big" id="s-score">0</div>
+        <div class="strength-tag" id="s-tag">-</div>
+        <div class="bar-wrap"><div class="bar-fill" id="s-bar" style="width:0%"></div></div>
+        <div class="crack-time" id="s-crack">Crack time: -</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px"><span class="ct-icon">&#128270;</span> Properties</div>
+        <div class="g2" style="gap:8px">
+          <div class="metric"><div class="metric-val" id="s-len">-</div><div class="metric-sub">Length</div></div>
+          <div class="metric"><div class="metric-val" id="s-ent">-</div><div class="metric-sub">Entropy (bits)</div></div>
+        </div>
+        <div class="checks" style="margin-top:12px" id="s-checks"></div>
+      </div>
+    </div>
+    <div class="card" id="s-issues-card" style="display:none">
+      <div class="card-title" style="margin-bottom:14px"><span class="ct-icon">&#9888;</span> Issues & Suggestions</div>
+      <div id="s-issues"></div>
+    </div>
+    <div class="card" id="s-breach-card" style="display:none">
+      <div class="card-title" style="margin-bottom:14px"><span class="ct-icon">&#128683;</span> Breach Status</div>
+      <div id="s-breach-res"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HASH CRACKER ══════════════════════════════ -->
+<div class="panel" id="panel-hash">
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title"><span class="ct-icon">&#128273;</span> Hash Detector & Cracker</div>
+    </div>
+    <div class="inp-group">
+      <label class="inp-label">Hash String</label>
+      <input class="inp" id="h-hash" placeholder="Paste hash here — auto-detects MD5, SHA1, SHA256, SHA512, NTLM, bcrypt..." oninput="detectHash(this.value)" style="font-family:var(--mono)">
+      <div id="h-types" style="margin-top:10px"></div>
+    </div>
+    <div class="g2">
+      <div class="inp-group">
+        <label class="inp-label">Hash Type</label>
+        <select class="inp" id="h-type">
+          <option>MD5</option><option>SHA1</option><option>SHA256</option>
+          <option>SHA512</option><option>NTLM</option><option>bcrypt</option>
+        </select>
+      </div>
+      <div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title"><span class="ct-icon">&#128196;</span> Wordlist</div>
+      <span style="font-size:12px;color:var(--muted)">Upload file OR paste manually</span>
+    </div>
+    <div class="upload-zone" id="h-upload-zone" style="margin-bottom:12px">
+      <input type="file" id="h-wl-file" accept=".txt" onchange="showFile(this,'h-fname')">
+      <div class="upload-icon">&#128196;</div>
+      <div class="upload-text">Upload wordlist .txt</div>
+      <div class="upload-sub">One password per line</div>
+      <div class="upload-name" id="h-fname"></div>
+    </div>
+    <textarea class="inp" id="h-manual" placeholder="Or paste passwords here (one per line):&#10;password123&#10;admin@123&#10;Chandan@123"></textarea>
+    <div class="btn-group">
+      <button class="btn" onclick="doCrack()">&#128273; Crack Hash</button>
+      <span style="font-size:12px;color:var(--muted);align-self:center">Leave empty to use built-in common passwords list</span>
+    </div>
+  </div>
+
+  <div id="h-result" style="display:none">
+    <div class="card">
+      <div id="h-result-box"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BREACH CHECK ══════════════════════════════ -->
+<div class="panel" id="panel-breach">
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title"><span class="ct-icon">&#9888;</span> HaveIBeenPwned Breach Checker</div>
+    </div>
+    <div class="alert alert-ok" style="margin-bottom:16px">
+      <span>&#128274;</span>
+      <span><strong>Your password is safe.</strong> Only a partial SHA1 hash (first 5 chars) is sent to the API — your actual password never leaves your device.</span>
+    </div>
+    <div class="inp-row">
+      <div class="pwd-wrap">
+        <input class="inp" type="password" id="b-pwd" placeholder="Enter password to check against breach database...">
+        <span class="pwd-eye" onclick="toggleEye('b-pwd',this)">SHOW</span>
+      </div>
+      <button class="btn btn-red" onclick="doBreachCheck()">&#9888; Check Now</button>
+    </div>
+    <div id="b-result" style="display:none;margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:16px"><span class="ct-icon">&#128270;</span> How k-Anonymity Works</div>
+    <div class="how-box">
+      <div class="how-step">
+        <div class="how-num">1</div>
+        <div><strong style="color:var(--text)">Local hashing</strong> — Your password is SHA1 hashed <em>on your device</em></div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">2</div>
+        <div><strong style="color:var(--text)">Partial send</strong> — Only the first 5 characters of the hash are sent to HIBP API</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">3</div>
+        <div><strong style="color:var(--text)">Server returns</strong> — All hashes starting with those 5 chars (thousands of results)</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">4</div>
+        <div><strong style="color:var(--text)">Local check</strong> — We compare the full hash locally. Password never transmitted!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ WORDLIST GEN ══════════════════════════════ -->
+<div class="panel" id="panel-wordlist">
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title"><span class="ct-icon">&#9998;</span> Smart Wordlist Generator</div>
+      <span style="font-size:12px;color:var(--muted)">More info = better wordlist</span>
+    </div>
+    <div class="g2">
+      <div class="inp-group">
+        <label class="inp-label">Full Name <span class="inp-required">*</span></label>
+        <input class="inp" id="w-name" placeholder="e.g. Chandan Kumar">
+      </div>
+      <div class="inp-group">
+        <label class="inp-label">Date of Birth</label>
+        <input class="inp" id="w-dob" placeholder="e.g. 15061995 or 15/06/1995">
+      </div>
+      <div class="inp-group">
+        <label class="inp-label">Company / Organization</label>
+        <input class="inp" id="w-company" placeholder="e.g. Infosys, TCS, Wipro">
+      </div>
+      <div class="inp-group">
+        <label class="inp-label">Mobile Number</label>
+        <input class="inp" id="w-phone" placeholder="e.g. 9876543210">
+      </div>
+      <div class="inp-group">
+        <label class="inp-label">Email Address</label>
+        <input class="inp" id="w-email" placeholder="e.g. chandan@gmail.com">
+      </div>
+      <div class="inp-group">
+        <label class="inp-label">Pet Name</label>
+        <input class="inp" id="w-pet" placeholder="e.g. Tommy, Bruno, Tiger">
+      </div>
+      <div class="inp-group">
+        <label class="inp-label">City</label>
+        <input class="inp" id="w-city" placeholder="e.g. Delhi, Mumbai, Bangalore">
+      </div>
+      <div class="inp-group">
+        <label class="inp-label">Max Words</label>
+        <input class="inp" id="w-max" type="number" value="1000" min="100" max="2000">
+      </div>
+    </div>
+    <div class="inp-group">
+      <label class="inp-label">Keywords (comma separated)</label>
+      <input class="inp" id="w-kw" placeholder="e.g. cricket, iphone, india, 786, manager, honda">
+    </div>
+    <div class="btn-group">
+      <button class="btn" onclick="doWordlist()">&#9654; Generate Wordlist</button>
+      <button class="btn btn-outline" id="w-dl" style="display:none" onclick="dlWordlist()">&#8595; Download .txt</button>
+      <button class="btn btn-outline" id="w-cp" style="display:none" onclick="cpWordlist()">&#10064; Copy All</button>
+    </div>
+  </div>
+
+  <div id="w-result" style="display:none">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title"><span class="ct-icon">&#128196;</span> Generated Wordlist</div>
+          <div class="wl-stats" id="w-stats" style="margin-top:8px"></div>
+        </div>
+        <input class="inp" id="w-filter" placeholder="Filter..." style="max-width:180px;padding:7px 12px;font-size:12px" oninput="filterWL(this.value)">
+      </div>
+      <div class="wl-box" id="w-out"></div>
+      <div class="alert alert-warn" style="margin-top:12px">
+        <span>&#9888;</span>
+        <span>For authorized penetration testing only. Unauthorized use is illegal.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PDF CRACKER ══════════════════════════════ -->
+<div class="panel" id="panel-pdf">
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title"><span class="ct-icon">&#128196;</span> PDF Password Cracker</div>
+    </div>
+    <div class="alert alert-tip" style="margin-bottom:16px">
+      <span>&#128161;</span>
+      <span>Upload a password-protected PDF and a wordlist. The tool will try each password until it finds the correct one.</span>
+    </div>
+    <div class="inp-group">
+      <label class="inp-label">Protected PDF File <span class="inp-required">*</span></label>
+      <div class="upload-zone">
+        <input type="file" id="pdf-file" accept=".pdf" onchange="showFile(this,'pdf-fname')">
+        <div class="upload-icon">&#128196;</div>
+        <div class="upload-text">Upload PDF file</div>
+        <div class="upload-sub">Password-protected PDF</div>
+        <div class="upload-name" id="pdf-fname"></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="inp-group">
+      <label class="inp-label">Wordlist File (optional)</label>
+      <div class="upload-zone">
+        <input type="file" id="pdf-wl-file" accept=".txt" onchange="showFile(this,'pdf-wl-fname')">
+        <div class="upload-icon">&#128196;</div>
+        <div class="upload-text">Upload wordlist .txt</div>
+        <div class="upload-sub">One password per line</div>
+        <div class="upload-name" id="pdf-wl-fname"></div>
+      </div>
+    </div>
+    <div class="inp-group" style="margin-top:12px">
+      <label class="inp-label">Or paste passwords manually</label>
+      <textarea class="inp" id="pdf-manual" placeholder="One password per line:&#10;pdf123&#10;document2024&#10;Chandan@123"></textarea>
+    </div>
+    <div class="btn-group">
+      <button class="btn" id="pdf-btn" onclick="doPDFCrack()">&#128273; Crack PDF Password</button>
+    </div>
+    <div id="pdf-progress" style="display:none;margin-top:12px">
+      <div style="font-size:13px;color:var(--muted)" id="pdf-prog-text">Trying passwords...</div>
+      <div class="prog-wrap"><div class="prog-fill" id="pdf-prog-bar" style="width:60%"></div></div>
+    </div>
+  </div>
+
+  <div id="pdf-result" style="display:none">
+    <div class="card"><div id="pdf-result-box"></div></div>
+  </div>
+</div>
+
+<!-- ══ BULK AUDIT ══════════════════════════════ -->
+<div class="panel" id="panel-bulk">
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title"><span class="ct-icon">&#128203;</span> Bulk Password Audit</div>
+      <span style="font-size:12px;color:var(--muted)">Max 100 passwords</span>
+    </div>
+    <div class="inp-group">
+      <label class="inp-label">Passwords (one per line)</label>
+      <textarea class="inp" id="bl-pwds" style="min-height:150px" placeholder="password123&#10;Admin@123&#10;Rahul@2024&#10;P@ssw0rd&#10;qwerty123&#10;Chandan#786"></textarea>
+    </div>
+    <button class="btn" onclick="doBulk()">&#9654; Run Audit</button>
+  </div>
+  <div id="bl-result" style="display:none">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px"><span class="ct-icon">&#128200;</span> Summary</div>
+      <div class="g4" id="bl-summary" style="margin-bottom:0"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:14px"><span class="ct-icon">&#128203;</span> Detailed Results</div>
+      <div style="overflow-x:auto">
+        <table class="btable">
+          <thead><tr><th>#</th><th>Password</th><th>Score</th><th>Strength</th><th>Length</th><th>Crack Time</th></tr></thead>
+          <tbody id="bl-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<div class="wrap">
+  <footer>PassAudit Pro v2.0 &nbsp;&#183;&nbsp; For authorized security testing only &nbsp;&#183;&nbsp; Use responsibly</footer>
+</div>
+
+<script>
+// ── Globals ───────────────────────────────────────────────
+let wlData = [];
+
+// ── Tab switching ────────────────────────────────────────
+function go(name){
+  const names=['strength','hash','breach','wordlist','pdf','bulk'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function toggleEye(id,btn){
+  const el=document.getElementById(id);
+  el.type=el.type==='password'?'text':'password';
+  btn.textContent=el.type==='password'?'SHOW':'HIDE';
+}
+function showFile(input,labelId){
+  const el=document.getElementById(labelId);
+  if(input.files[0]) el.textContent='Selected: '+input.files[0].name;
+}
+async function api(url,body){
+  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return r.json();
+}
+
+// ── Strength colors ───────────────────────────────────────
+function sColor(s){return{STRONG:'#22c55e',GOOD:'#4ade80',FAIR:'#eab308',WEAK:'#f97316','VERY WEAK':'#ef4444'}[s]||'#888'}
+function sClass(s){return{STRONG:'sev-strong',GOOD:'sev-good',FAIR:'sev-fair',WEAK:'sev-weak','VERY WEAK':'sev-vweak'}[s]||'sev-fair'}
+
+// ── Strength Analyzer ─────────────────────────────────────
+let strTimer=null;
+function liveStr(v){clearTimeout(strTimer);if(!v){document.getElementById('str-result').style.display='none';return}strTimer=setTimeout(()=>doAnalyze(true),300)}
+
+async function doAnalyze(live=false){
+  const pwd=document.getElementById('s-pwd').value;
+  if(!pwd)return;
+  const checkBreach=document.getElementById('s-breach').checked&&!live;
+  const d=await api('/api/analyze',{password:pwd,check_breach:checkBreach});
+  if(!d.success){alert(d.error);return}
+  const r=d.result;
+  document.getElementById('str-result').style.display='block';
+  const col=sColor(r.strength);
+
+  document.getElementById('s-score').textContent=r.score;
+  document.getElementById('s-score').style.color=col;
+  document.getElementById('s-tag').innerHTML=`<span style="color:${col}">${r.strength==='VERY WEAK'?'&#128308;':r.strength==='WEAK'?'&#128993;':r.strength==='FAIR'?'&#128992;':r.strength==='GOOD'?'&#128994;':'&#128994;'}</span> ${r.strength}`;
+  document.getElementById('s-tag').style.cssText=`background:${col}22;border:1px solid ${col}44;color:${col};display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;margin-top:6px`;
+  document.getElementById('s-bar').style.cssText=`width:${r.score}%;background:${col}`;
+  document.getElementById('s-crack').textContent='Crack time: '+r.crack_time;
+  document.getElementById('s-len').textContent=r.length;
+  document.getElementById('s-ent').textContent=r.entropy;
+
+  const checks=[
+    {l:'Lowercase (a-z)',v:r.has_lower},{l:'Uppercase (A-Z)',v:r.has_upper},
+    {l:'Numbers (0-9)',v:r.has_digits},{l:'Special chars',v:r.has_special},
+    {l:'8+ characters',v:r.length>=8},{l:'12+ characters',v:r.length>=12},
+  ];
+  document.getElementById('s-checks').innerHTML=checks.map(c=>
+    `<div class="check"><div class="check-dot ${c.v?'ok':'no'}">${c.v?'&#10003;':'&#10007;'}</div><span style="color:${c.v?'var(--green)':'var(--muted)'};font-size:13px">${c.l}</span></div>`
+  ).join('');
+
+  const allIssues=[
+    ...r.issues.map(i=>({t:'err',m:i})),
+    ...r.warnings.map(w=>({t:'warn',m:w})),
+    ...r.suggestions.map(s=>({t:'tip',m:s})),
+  ];
+  const ic=document.getElementById('s-issues-card');
+  if(allIssues.length){
+    ic.style.display='block';
+    document.getElementById('s-issues').innerHTML=allIssues.map(i=>
+      `<div class="alert alert-${i.t==='err'?'err':i.t==='warn'?'warn':'tip'}"><span>${i.t==='err'?'&#9888;':i.t==='warn'?'&#9888;':'&#128161;'}</span><span>${esc(i.m)}</span></div>`
+    ).join('');
+  } else ic.style.display='none';
+
+  if(r.breach){
+    document.getElementById('s-breach-card').style.display='block';
+    document.getElementById('s-breach-res').innerHTML=renderBreach(r.breach);
+  }
+}
+
+function renderBreach(b){
+  if(!b.checked) return `<div class="alert alert-warn"><span>&#9888;</span><span>Check failed: ${esc(b.error||'Unknown')}</span></div>`;
+  if(b.breached) return `<div class="breach-box breach-breached"><div class="breach-icon">&#128680;</div><div><div class="breach-title" style="color:var(--red)">Password BREACHED!</div><div class="breach-sub">Found <strong style="color:var(--orange)">${b.count.toLocaleString()}</strong> times in data breaches. Change this password immediately on all sites!</div></div></div>`;
+  return `<div class="breach-box breach-safe"><div class="breach-icon">&#128994;</div><div><div class="breach-title" style="color:var(--green)">Not Found in Breaches</div><div class="breach-sub">This password hasn't appeared in any known data breach database. Stay safe!</div></div></div>`;
+}
+
+// ── Hash Cracker ─────────────────────────────────────────
+async function detectHash(v){
+  const el=document.getElementById('h-types');
+  if(!v||v.length<8){el.innerHTML='';return}
+  const d=await api('/api/detect-hash',{hash:v});
+  if(!d.success||!d.types.length){el.innerHTML='<span style="font-size:12px;color:var(--muted)">Unknown format</span>';return}
+  el.innerHTML='Detected: '+d.types.map(t=>`<span class="hash-pill">${t}</span>`).join('');
+  if(d.types[0]) document.getElementById('h-type').value=d.types[0];
+}
+
+async function doCrack(){
+  const hash=document.getElementById('h-hash').value.trim();
+  const ht=document.getElementById('h-type').value;
+  const fileInput=document.getElementById('h-wl-file');
+  const manual=document.getElementById('h-manual').value.trim();
+  if(!hash){alert('Enter a hash');return}
+
+  document.getElementById('h-result').style.display='block';
+  document.getElementById('h-result-box').innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">&#128273; Cracking... please wait</div>';
+
+  // Use file upload endpoint if file selected
+  if(fileInput.files[0]||manual){
+    const fd=new FormData();
+    fd.append('hash',hash);
+    fd.append('hash_type',ht);
+    if(fileInput.files[0]) fd.append('wordlist_file',fileInput.files[0]);
+    if(manual) fd.append('manual_wordlist',manual);
+    const r=await fetch('/api/crack-hash-file',{method:'POST',body:fd});
+    const d=await r.json();
+    renderCrack(d);
+  } else {
+    const d=await api('/api/crack-hash',{hash,hash_type:ht,wordlist:[]});
+    renderCrack(d);
+  }
+}
+
+function renderCrack(d){
+  if(!d.success){
+    document.getElementById('h-result-box').innerHTML=`<div class="alert alert-err"><span>&#9888;</span><span>${esc(d.error)}</span></div>`;
+    return;
+  }
+  const r=d.result;
+  document.getElementById('h-result-box').innerHTML=r.cracked
+    ?`<div class="crack-box crack-success">
+        <div style="color:var(--green);font-size:14px;font-weight:600">&#10003; CRACKED SUCCESSFULLY!</div>
+        <div class="crack-pwd" style="color:var(--green)">${esc(r.password)}</div>
+        <div class="crack-meta">${r.hash_type} &nbsp;&#183;&nbsp; ${r.attempts.toLocaleString()} attempts &nbsp;&#183;&nbsp; ${r.time}s</div>
+      </div>`
+    :`<div class="crack-box crack-fail">
+        <div style="color:var(--red);font-size:14px;font-weight:600">&#10007; Not Cracked</div>
+        <div style="color:var(--muted);font-size:13px;margin-top:8px">Tried ${r.attempts?.toLocaleString()||0} passwords in ${r.time}s</div>
+        <div style="color:var(--dim);font-size:12px;margin-top:6px">Upload a larger wordlist or use the Wordlist Generator to create a targeted list</div>
+      </div>`;
+}
+
+// ── Breach Check ─────────────────────────────────────────
+async function doBreachCheck(){
+  const pwd=document.getElementById('b-pwd').value;
+  if(!pwd){alert('Enter a password');return}
+  document.getElementById('b-result').style.display='block';
+  document.getElementById('b-result').innerHTML='<div style="color:var(--muted);font-size:13px">Checking HIBP API...</div>';
+  const d=await api('/api/breach-check',{password:pwd});
+  if(!d.success){document.getElementById('b-result').innerHTML=`<div class="alert alert-err"><span>&#9888;</span><span>${esc(d.error||'Unknown error')}</span></div>`;return}
+  document.getElementById('b-result').innerHTML=renderBreach(d.result);
+}
+
+// ── Wordlist Generator ────────────────────────────────────
+async function doWordlist(){
+  const btn=event.currentTarget;
+  btn.disabled=true; btn.textContent='Generating...';
+  const kw=document.getElementById('w-kw').value.split(',').map(k=>k.trim()).filter(Boolean);
+  const d=await api('/api/generate-wordlist',{
+    name:document.getElementById('w-name').value,
+    dob:document.getElementById('w-dob').value,
+    keywords:kw,
+    company:document.getElementById('w-company').value,
+    phone:document.getElementById('w-phone').value,
+    email:document.getElementById('w-email').value,
+    pet:document.getElementById('w-pet').value,
+    city:document.getElementById('w-city').value,
+    max_words:parseInt(document.getElementById('w-max').value)||1000,
+  });
+  btn.disabled=false; btn.textContent='\u25B6 Generate Wordlist';
+  if(!d.success){alert(d.error);return}
+  wlData=d.wordlist;
+  document.getElementById('w-result').style.display='block';
+  const capCount=d.wordlist.filter(w=>w[0]===w[0].toUpperCase()&&w[0].match(/[A-Z]/)).length;
+  const specCount=d.wordlist.filter(w=>/[@#$!]/.test(w)).length;
+  document.getElementById('w-stats').innerHTML=
+    `<div class="wl-stat">Total: <span>${d.count}</span></div>
+     <div class="wl-stat">Capitalized: <span>${capCount}</span></div>
+     <div class="wl-stat">With special chars: <span>${specCount}</span></div>
+     <div class="wl-stat">Length 8-12: <span>${d.wordlist.filter(w=>w.length>=8&&w.length<=12).length}</span></div>`;
+  document.getElementById('w-out').textContent=d.wordlist.join('\n');
+  document.getElementById('w-dl').style.display='inline-flex';
+  document.getElementById('w-cp').style.display='inline-flex';
+  document.getElementById('w-filter').value='';
+}
+
+function filterWL(q){
+  if(!wlData.length)return;
+  const f=q?wlData.filter(w=>w.toLowerCase().includes(q.toLowerCase())):wlData;
+  document.getElementById('w-out').textContent=f.join('\n');
+}
+
+function dlWordlist(){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([wlData.join('\n')],{type:'text/plain'}));
+  a.download='passaudit_wordlist.txt'; a.click();
+}
+
+async function cpWordlist(){
+  await navigator.clipboard.writeText(wlData.join('\n'));
+  const btn=document.getElementById('w-cp');
+  btn.textContent='\u2713 Copied!';
+  setTimeout(()=>btn.textContent='\u29BF Copy All',2000);
+}
+
+// ── PDF Cracker ───────────────────────────────────────────
+async function doPDFCrack(){
+  const pdfFile=document.getElementById('pdf-file');
+  if(!pdfFile.files[0]){alert('Select a PDF file');return}
+  document.getElementById('pdf-progress').style.display='block';
+  document.getElementById('pdf-result').style.display='none';
+  document.getElementById('pdf-btn').disabled=true;
+  document.getElementById('pdf-prog-text').textContent='Uploading and trying passwords...';
+  const fd=new FormData();
+  fd.append('pdf_file',pdfFile.files[0]);
+  const wlFile=document.getElementById('pdf-wl-file');
+  if(wlFile.files[0]) fd.append('wordlist_file',wlFile.files[0]);
+  const manual=document.getElementById('pdf-manual').value.trim();
+  if(manual) fd.append('manual_wordlist',manual);
+  try{
+    const r=await fetch('/api/crack-pdf',{method:'POST',body:fd});
+    const d=await r.json();
+    document.getElementById('pdf-progress').style.display='none';
+    document.getElementById('pdf-btn').disabled=false;
+    document.getElementById('pdf-result').style.display='block';
+    if(!d.success){
+      document.getElementById('pdf-result-box').innerHTML=`<div class="alert alert-err"><span>&#9888;</span><span>${esc(d.error)}</span></div>`;
+      return;
+    }
+    const res=d.result;
+    document.getElementById('pdf-result-box').innerHTML=res.cracked
+      ?`<div class="crack-box crack-success">
+          <div style="color:var(--green);font-size:14px;font-weight:600">&#128196; PDF Password Found!</div>
+          <div class="crack-pwd" style="color:var(--green)">${esc(res.password)}</div>
+          <div class="crack-meta">${res.attempts.toLocaleString()} attempts &nbsp;&#183;&nbsp; ${res.time}s</div>
+        </div>`
+      :`<div class="crack-box crack-fail">
+          <div style="color:var(--red);font-size:14px;font-weight:600">&#10007; Password Not Found</div>
+          <div style="color:var(--muted);font-size:13px;margin-top:8px">Tried ${res.attempts?.toLocaleString()||0} passwords in ${res.time}s</div>
+          <div style="color:var(--dim);font-size:12px;margin-top:6px">Try using the Wordlist Generator with target's personal info</div>
+        </div>`;
+  }catch(e){
+    document.getElementById('pdf-progress').style.display='none';
+    document.getElementById('pdf-btn').disabled=false;
+    document.getElementById('pdf-result').style.display='block';
+    document.getElementById('pdf-result-box').innerHTML=`<div class="alert alert-err"><span>&#9888;</span><span>Error: ${esc(e.message)}</span></div>`;
+  }
+}
+
+// ── Bulk Audit ────────────────────────────────────────────
+async function doBulk(){
+  const txt=document.getElementById('bl-pwds').value.trim();
+  if(!txt){alert('Enter passwords');return}
+  const pwds=txt.split('\n').filter(p=>p.trim());
+  const d=await api('/api/bulk-audit',{passwords:pwds});
+  if(!d.success){alert(d.error);return}
+  const r=d.result,s=r.summary;
+  document.getElementById('bl-result').style.display='block';
+  document.getElementById('bl-summary').innerHTML=`
+    <div class="metric"><div class="metric-val">${r.total}</div><div class="metric-sub">Total</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--green)">${s.avg_score}</div><div class="metric-sub">Avg Score</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--green)">${s.strength_counts['STRONG']}</div><div class="metric-sub">Strong</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--red)">${s.strength_counts['WEAK']+(s.strength_counts['VERY WEAK']||0)}</div><div class="metric-sub">Weak</div></div>`;
+  document.getElementById('bl-tbody').innerHTML=r.results.map((p,i)=>{
+    const col=sColor(p.strength);
+    return`<tr>
+      <td style="color:var(--dim)">${i+1}</td>
+      <td>${esc(p.password)}</td>
+      <td><span style="color:${col};font-weight:700">${p.score}</span><div class="mini-bar"><div class="mini-fill" style="width:${p.score}%;background:${col}"></div></div></td>
+      <td><span class="sev-badge ${sClass(p.strength)}">${p.strength}</span></td>
+      <td>${p.length}</td>
+      <td style="color:var(--muted);font-size:11px">${esc(p.crack_time)}</td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('s-pwd').addEventListener('keydown',e=>{if(e.key==='Enter')doAnalyze()});
+</script>
+</body>
+</html>
